@@ -21,5 +21,5 @@ python test_tongue.py
     ```
 2. traing
     ```bash
-    python tongue_py
+    python tongue.py
     ```
