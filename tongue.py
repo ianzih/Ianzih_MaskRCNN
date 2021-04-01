@@ -18,8 +18,10 @@ from mrcnnn import visualize
 import yaml
 from mrcnnn.model import log
 from PIL import Image
- 
+
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 # Root directory of the project
 ROOT_DIR = os.getcwd()
  
@@ -43,10 +45,10 @@ class ShapesConfig(Config):
     """
     # Give the configuration a recognizable name
     NAME = "shapes"
- 
+    
     # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
     # GPU because the images are small. Batch size is 8 (GPUs * images/GPU).
-    GPU_COUNT = 1
+    GPU_COUNT = 2
     IMAGES_PER_GPU = 2
  
     # Number of classes (including background)
@@ -56,6 +58,7 @@ class ShapesConfig(Config):
     # the large side, and that determines the image shape.
     IMAGE_MIN_DIM = 512
     IMAGE_MAX_DIM = 640
+    
  
     # Use smaller anchors because our image and objects are small
     RPN_ANCHOR_SCALES = (8 * 6, 16 * 6, 32 * 6, 64 * 6, 128 * 6)  # anchor side in pixels
@@ -65,10 +68,12 @@ class ShapesConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 100
  
     # Use a small epoch since the data is simple
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 1000
  
     # use small validation steps since the epoch is small
-    VALIDATION_STEPS = 50
+    VALIDATION_STEPS = 10
+
+    LEARNING_RATE =  0.00001
  
  
 config = ShapesConfig()
@@ -85,7 +90,8 @@ class DrugDataset(utils.Dataset):
     def from_yaml_get_class(self, image_id):
         info = self.image_info[image_id]
         with open(info['yaml_path']) as f:
-            temp = yaml.load(f.read())
+            temp = yaml.load(f.read(), Loader=yaml.FullLoader)
+            yaml.warnings({'YAMLLoadWarning': False})
             labels = temp['label_names']
             del labels[0]
         return labels
@@ -136,7 +142,7 @@ class DrugDataset(utils.Dataset):
         """Generate instance masks for shapes of the given image ID.
         """
         global iter_num
-        print("image_id", image_id)
+        #print("image_id", image_id)
         info = self.image_info[image_id]
         count = 1  # number of object
         img = Image.open(info['mask_path'])
@@ -188,7 +194,7 @@ dataset_train.prepare()
  
 dataset_val = DrugDataset()
 #####dataset_val.load_shapes(count, img_floder, mask_floder, imglist, dataset_root_path)
-dataset_val.load_shapes(13, img_floder, mask_floder, imglist, dataset_root_path)############
+dataset_val.load_shapes(15, img_floder, mask_floder, imglist, dataset_root_path)############
 dataset_val.prepare()
  
  
@@ -224,16 +230,17 @@ elif init_with == "last":
 # Passing layers="heads" freezes all layers except the head
 # layers. You can also pass a regular expression to select
 # which layers to train by name pattern.
+
 model.train(dataset_train, dataset_val,
             learning_rate=config.LEARNING_RATE,
-            epochs=20,
+            epochs=50,
             layers='heads')
- 
+
 # Fine tune all layers
 # Passing layers="all" trains all layers. You can also
 # pass a regular expression to select which layers to
 # train by name pattern.
 model.train(dataset_train, dataset_val,
             learning_rate=config.LEARNING_RATE / 10,
-            epochs=40,
+            epochs=100,
             layers="all")
