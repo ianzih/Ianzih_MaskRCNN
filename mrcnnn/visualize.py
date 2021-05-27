@@ -25,7 +25,7 @@ ROOT_DIR = os.path.abspath("../")
 
 # Import Mask RCNN
 sys.path.append(ROOT_DIR)  # To find local version of the library
-from mrcnn import utils
+from mrcnnn import utils
 
 
 ############################################################
@@ -164,7 +164,7 @@ def display_instances(image, boxes, masks, class_ids, class_names,
             ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
     if auto_show:
-        plt.savefig("./test.jpg")
+        plt.savefig("./"+title+str(scores[i])+".jpg")
         plt.show()
 
 
