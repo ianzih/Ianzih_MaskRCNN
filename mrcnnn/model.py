@@ -25,6 +25,7 @@ from collections import OrderedDict
 import multiprocessing
 import numpy as np
 import tensorflow as tf
+import matplotlib.pyplot as plt
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
@@ -1839,7 +1840,7 @@ class MaskRCNN():
     The actual Keras model is in the keras_model property.
     """
 
-    def __init__(self, mode, config, model_dir):
+    def __init__(self, mode, config, model_dir,tongue_val_loss = [],tongue_loss = []):
         """
         mode: Either "training" or "inference"
         config: A Sub-class of the Config class
@@ -1851,6 +1852,9 @@ class MaskRCNN():
         self.model_dir = model_dir
         self.set_log_dir()
         self.keras_model = self.build(mode=mode, config=config)
+        self.tongue_val_loss = tongue_val_loss
+        self.tongue_loss = tongue_loss
+
 
     def build(self, mode, config):
         """Build Mask R-CNN architecture.
@@ -2386,7 +2390,7 @@ class MaskRCNN():
         else:
             workers = multiprocessing.cpu_count()
 
-        self.keras_model.fit_generator(
+        tongue_model = self.keras_model.fit_generator(
             train_generator,
             initial_epoch=self.epoch,
             epochs=epochs,
@@ -2399,6 +2403,18 @@ class MaskRCNN():
             use_multiprocessing=True,
         )
         self.epoch = max(self.epoch, epochs)
+
+        self.tongue_loss += tongue_model.history['loss']
+        self.tongue_val_loss += tongue_model.history['val_loss'] 
+        print(self.tongue_loss)
+        plt.figure()
+        plt.plot(self.tongue_loss)
+        plt.plot(self.tongue_val_loss)
+        plt.title('Traing and Validation loss')
+        plt.ylabel('Loss')
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Test'], loc='upper left')
+        plt.savefig('./model_loss'+str(learning_rate)+'.jpg')
 
     def mold_inputs(self, images):
         """Takes a list of images and modifies them to the format expected
